@@ -4,11 +4,12 @@ import logging
 class Funlogger:
     def __init__(self, log_name=""):
         self.log_name = log_name
-        logging.basicConfig(filename=log_name, level=logging.DEBUG)
-        self.clear_log()
+        if log_name != "":
+            logging.basicConfig(filename=log_name, level=logging.DEBUG)
+            self.clear_log()
 
     def log(self, msg):
-        if (self.log_name == ""):
+        if self.log_name == "":
             print(msg)
         else:
             logging.info(msg)
