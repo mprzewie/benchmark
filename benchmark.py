@@ -34,13 +34,17 @@ class Benchmark:
     def make_measurements(self, sizes):
 
         @with_timeout(self.measurement_timeout)
-        def measures(s):
-            return list(map(lambda size: (size, self.execution_time(size)), s))
+        def make_measurements_():
+            made = 0
+            for size in sizes:
+                self.measurements.append((size, self.execution_time(size)))
+                made += 1
 
         try:
-            self.measurements.extend(measures(sizes))
+            make_measurements_()
         except TimeoutException as ex:
-            self.logger.log("The maximal measurement time (" + ex.timeout_to_str() + ") has been exceeded!")
+            self.logger.log("The maximal measurement time (" + ex.timeout_to_str() + ") has been exceeded!\nNot all "
+                                                                                     "measurements have been made.")
         return self.measurements
 
     def make_random_measurements(self, count=256, min=1, max=100):
@@ -49,31 +53,54 @@ class Benchmark:
 
     def predict_complexity(self):
         @self.logger.log_fun
-        def predict():
-            return ComplexMatcher().match(self.measurements)
+        def predict_complexity_():
+            self.predicted_complexity_name, self.predicted_complexity, self.predicted_complexity_const, _ = ComplexMatcher().match(self.measurements)
+            return self.predicted_complexity_name
 
-        self.logger.log("Predicting complexity of " + self.to_measure.__name__)
-        self.predicted_complexity_name, self.predicted_complexity, self.predicted_complexity_const, _ = predict()
-        return self.predicted_complexity_name
+        try:
+            self.logger.log("Predict complexity of " + self.to_measure.__name__)
 
-    def time_for_size(self, size):
-        return self.predicted_complexity(size) * self.predicted_complexity_const
+            return predict_complexity_()
+        except NotEnoughMeasurePointsException:
+            self.logger.log("Failure! No measurements of " + self.to_measure.__name__)
+            return None
 
-    def size_for_time(self, time):
+    def time_for_size(self, size, to_log=True):
+        result = self.predicted_complexity(size) * self.predicted_complexity_const
+        if to_log:
+            @self.logger.log_fun
+            def time_for_size_(s):
+                return result
+
+            return time_for_size_(size)
+
+        else:
+            return result
+
+    def size_for_time(self, time, to_log=True):
         def bin_search(min_n, max_n):
             if max_n - min_n < 1:
                 return max_n
             vertex = (min_n + max_n) / 2
-            time_for_vertex = self.time_for_size(vertex)
+            time_for_vertex = self.time_for_size(vertex, to_log=False)
             if time_for_vertex < time:
                 return bin_search(vertex, max_n)
             else:
                 return bin_search(min_n, vertex)
 
         max_size = 1
-        while self.time_for_size(max_size) < time:
+        while self.time_for_size(max_size, to_log=False) < time:
             max_size *= 2
-        return bin_search(max_size / 2, max_size)
+        result = bin_search(max_size / 2, max_size)
+
+        @self.logger.log_fun
+        def size_for_time_(t):
+            return result
+
+        if to_log:
+            return size_for_time_(time)
+        else:
+            return result
 
     def plot_measurements(self):
         sizes = list(map(lambda x: x[0], self.measurements))

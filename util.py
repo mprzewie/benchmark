@@ -1,4 +1,5 @@
 import signal
+from timeit import default_timer as timer
 
 
 class NotEnoughMeasurePointsException(Exception):
@@ -21,11 +22,14 @@ def with_timeout(timeout):
         def tmp(*args):
             signal.signal(signal.SIGALRM, handler)
             signal.alarm(timeout)
-            if type(args) is list:
-                return f(args)
-            else:
-                return f(*args)
-
+            try:
+                if type(args) is list:
+                    return f(args)
+                else:
+                    return f(*args)
+            finally:
+                signal.alarm(0)
         return tmp
 
     return timeout_canceller
+
