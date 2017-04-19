@@ -6,7 +6,11 @@ class NotEnoughMeasurePointsException(Exception):
 
 
 class TimeoutException(Exception):
-    pass
+    def __init__(self, timeout):
+        self.timeout = timeout
+
+    def timeout_to_str(self):
+        return str(self.timeout) + " seconds"
 
 
 def with_timeout(timeout):

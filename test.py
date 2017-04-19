@@ -1,4 +1,6 @@
 from random import randrange
+import time
+from decimal import Decimal
 
 from benchmark import Benchmark
 
@@ -8,10 +10,16 @@ def rand_list(size, min=0, max=100):
 
 
 def my_sorted(list, name):
+    # time.sleep(6)
     return sorted(list), name
 
 
-b = Benchmark(rand_list, my_sorted, log_name="", measurement_timeout=5)
+log_name=""
 
-b.make_random_measurements(count=5)
-print(b.measurements)
+b = Benchmark(rand_list, my_sorted, log_name=log_name, measurement_timeout=100)
+
+b.make_random_measurements(count=50, max=10000)
+x=b.predict_complexity()
+y=b.predicted_complexity(8)
+print(y)
+b.plot_measurements()

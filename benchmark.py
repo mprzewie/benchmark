@@ -3,7 +3,9 @@ from math import log, factorial
 from util import NotEnoughMeasurePointsException, TimeoutException, with_timeout
 from timeit import default_timer as timer
 from random import randrange
+from decimal import Decimal
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class Benchmark:
@@ -14,8 +16,12 @@ class Benchmark:
         self.initializer = initializer
         self.to_measure = to_measure
         self.cleanup = cleanup
+        self.predicted_complexity_name=None
+        self.predicted_complexity=None
+        self.predicted_complexity_const=None
 
     def execution_time(self, size):
+        # TODO - use a context manager?
         to_measure_args = self.initializer(size)
         start = timer()
         if type(to_measure_args) is list:
@@ -28,19 +34,33 @@ class Benchmark:
 
     def make_measurements(self, sizes):
         @with_timeout(self.measurement_timeout)
-        @self.logger.log_fun
         def measures(s):
             return list(map(lambda size: (size, self.execution_time(size)), s))
 
         try:
             self.measurements.extend(measures(sizes))
-        except TimeoutException:
-            print("The maximal measurement time (" + str(self.measurement_timeout) + ") has been exceeded!")
+        except TimeoutException as ex:
+            self.logger.log("The maximal measurement time (" + ex.timeout_to_str() + ") has been exceeded!")
         return self.measurements
 
     def make_random_measurements(self, count=256, min=1, max=100):
         sizes = [randrange(min, max) for _ in range(count)]
         return self.make_measurements(sizes)
+
+    def predict_complexity(self):
+        @self.logger.log_fun
+        def predict():
+            return ComplexMatcher().match(self.measurements)
+        self.logger.log("Predicting complexity of " + self.to_measure.__name__)
+        self.predicted_complexity_name, self.predicted_complexity, self.predicted_complexity_const, _ = predict()
+        return self.predicted_complexity_name
+
+    def plot_measurements(self):
+        sizes = list(map(lambda x: x[0], self.measurements))
+        times = list(map(lambda x: x[1], self.measurements))
+        plt.plot(sizes, times, 'ro')
+        plt.show()
+
 
 
 class ComplexMatcher:
@@ -63,7 +83,7 @@ class ComplexMatcher:
             raise NotEnoughMeasurePointsException(len(measurements))
         vars = []
         for compl in self.complexities:
-            diffs = list(map(lambda m: (m[1] / self.complexities[compl](m[0])), measurements))
-            vars.append((compl, np.mean(diffs), np.var(diffs)))
-        vars.sort(key=lambda x: x[2])
+            diffs = list(map(lambda m: (log(m[1], 10) - log(self.complexities[compl](m[0]), 10)), measurements))
+            vars.append((compl, self.complexities[compl], np.mean(diffs), np.var(diffs)))
+        vars.sort(key=lambda x: x[3])
         return vars[0]
