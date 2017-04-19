@@ -3,7 +3,6 @@ from math import log, factorial
 from util import NotEnoughMeasurePointsException, TimeoutException, with_timeout
 from timeit import default_timer as timer
 from random import randrange
-from decimal import Decimal
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -16,9 +15,9 @@ class Benchmark:
         self.initializer = initializer
         self.to_measure = to_measure
         self.cleanup = cleanup
-        self.predicted_complexity_name=None
-        self.predicted_complexity=None
-        self.predicted_complexity_const=None
+        self.predicted_complexity_name = None
+        self.predicted_complexity = None
+        self.predicted_complexity_const = None
 
     def execution_time(self, size):
         # TODO - use a context manager?
@@ -33,6 +32,7 @@ class Benchmark:
         return end - start
 
     def make_measurements(self, sizes):
+
         @with_timeout(self.measurement_timeout)
         def measures(s):
             return list(map(lambda size: (size, self.execution_time(size)), s))
@@ -51,16 +51,35 @@ class Benchmark:
         @self.logger.log_fun
         def predict():
             return ComplexMatcher().match(self.measurements)
+
         self.logger.log("Predicting complexity of " + self.to_measure.__name__)
         self.predicted_complexity_name, self.predicted_complexity, self.predicted_complexity_const, _ = predict()
         return self.predicted_complexity_name
+
+    def time_for_size(self, size):
+        return self.predicted_complexity(size) * self.predicted_complexity_const
+
+    def size_for_time(self, time):
+        def bin_search(min_n, max_n):
+            if max_n - min_n < 1:
+                return max_n
+            vertex = (min_n + max_n) / 2
+            time_for_vertex = self.time_for_size(vertex)
+            if time_for_vertex < time:
+                return bin_search(vertex, max_n)
+            else:
+                return bin_search(min_n, vertex)
+
+        max_size = 1
+        while self.time_for_size(max_size) < time:
+            max_size *= 2
+        return bin_search(max_size / 2, max_size)
 
     def plot_measurements(self):
         sizes = list(map(lambda x: x[0], self.measurements))
         times = list(map(lambda x: x[1], self.measurements))
         plt.plot(sizes, times, 'ro')
         plt.show()
-
 
 
 class ComplexMatcher:
@@ -84,6 +103,6 @@ class ComplexMatcher:
         vars = []
         for compl in self.complexities:
             diffs = list(map(lambda m: (log(m[1], 10) - log(self.complexities[compl](m[0]), 10)), measurements))
-            vars.append((compl, self.complexities[compl], np.mean(diffs), np.var(diffs)))
+            vars.append((compl, self.complexities[compl], 10 ** np.mean(diffs), np.var(diffs)))
         vars.sort(key=lambda x: x[3])
         return vars[0]
