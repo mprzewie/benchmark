@@ -3,6 +3,7 @@ from random import randrange
 from timeit import default_timer as timer
 
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import numpy as np
 
 from benchmark.funlogger import Funlogger
@@ -23,32 +24,37 @@ class Benchmark:
         self.predicted_complexity_certainty = None
 
     def execution_time(self, size):
-        # TODO - use a context manager?
+        # wouldn't it make more sense to use a context manager?
         to_measure_args = self.initializer(size)
-        start = timer()
-        if type(to_measure_args) is list:
-            result = self.to_measure(to_measure_args)
-        else:
-            result = self.to_measure(*to_measure_args)
-        end = timer()
-        self.cleanup(result)
-        return end - start
+        try:
+            start = timer()
+            if type(to_measure_args) is list:
+                self.to_measure(to_measure_args)
+            else:
+                self.to_measure(*to_measure_args)
+            end = timer()
+            return end - start
+        finally:
+            if type(to_measure_args) is list:
+                self.cleanup(to_measure_args)
+            else:
+                self.cleanup(*to_measure_args)
 
     def make_measurements(self, sizes):
 
         @with_timeout(self.measurement_timeout)
         def make_measurements_():
-            made = 0
             for size in sizes:
                 self.measurements.append((size, self.execution_time(size)))
-                made += 1
 
         try:
+            sizes = sorted(sizes)
             make_measurements_()
+            return self.measurements
         except TimeoutException as ex:
-            self.logger.log("The maximal measurement time (" + ex.timeout_to_str() + ") has been exceeded!\nNot all "
-                                                                                     "measurements have been made.")
-        return self.measurements
+            self.logger.log("The maximal measurement time (" + ex.timeout_to_str() + ") has been exceeded!\n"
+                                                                                     "Made only " +
+                            str(len(self.measurements)) + " measurements")
 
     def make_random_measurements(self, count=256, min=1, max=100):
         sizes = [randrange(min, max) for _ in range(count)]
@@ -56,17 +62,15 @@ class Benchmark:
 
     def predict_complexity(self):
         @self.logger.log_fun
-        def predict_complexity_():
+        def predict_complexity_(_):
             self.predicted_complexity_name, self.predicted_complexity_fun, self.predicted_complexity_const, \
             self.predicted_complexity_certainty = ComplexMatcher().match(self.measurements)
             return self.predicted_complexity_name
 
         try:
-            self.logger.log("Predict complexity of " + self.to_measure.__name__)
-
-            return predict_complexity_()
+            return predict_complexity_(self.to_measure.__name__)
         except NotEnoughMeasurePointsException:
-            self.logger.log("Failure! No measurements of " + self.to_measure.__name__)
+            self.logger.log("Failure! Only one or no measurements of " + self.to_measure.__name__)
             return None
 
     def time_for_size(self, size, to_log=True):
@@ -109,7 +113,19 @@ class Benchmark:
     def plot_measurements(self):
         sizes = list(map(lambda x: x[0], self.measurements))
         times = list(map(lambda x: x[1], self.measurements))
-        plt.plot(sizes, times, 'ro')
+        predicted_times = list(map(lambda s: self.time_for_size(s, to_log=False), sizes))
+        plt.plot(sizes, times, 'ro', markersize=2)
+        plt.plot(sizes, predicted_times, 'b')
+        red_data=patches.Patch(color='red', label='Measured time')
+        blue_data=patches.Patch(color='blue', label='Predicted time')
+        plt.legend(handles=[red_data, blue_data])
+        plt.xlabel('problem size')
+        plt.ylabel('time of solution [s]')
+        plt.title('Function: '+self.to_measure.__name__ +
+                  '\nPredicted complexity: O(' +
+                  self.predicted_complexity_name + '), ' +
+                  'certainty of prediction: ' +
+                  "{0:.2f}".format(100*self.predicted_complexity_certainty) + '%')
         plt.show()
 
 

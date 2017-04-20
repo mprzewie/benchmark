@@ -4,9 +4,10 @@ setup(
     name='benchmark',
     version='1.0',
     description='A module for calculating complexities of functions',
-    author='Marcin Przewięźlikowski',
+    author='Marcin Przewiezlikowski',
     author_email='m.przewie@gmail.com',
     license='MIT',
-    packages=['benchmark'],  # same as name
-    install_requires=['numpy', 'matplotlib'],  # external packages as dependencies
+    packages=['benchmark'],  # same as name'
+    install_requires=['numpy', 'matplotlib']  # external packages as dependencies
+
 )
