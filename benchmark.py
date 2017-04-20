@@ -3,6 +3,7 @@ from math import log, factorial
 from util import NotEnoughMeasurePointsException, TimeoutException, with_timeout
 from timeit import default_timer as timer
 from random import randrange
+from functools import reduce
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -16,8 +17,9 @@ class Benchmark:
         self.to_measure = to_measure
         self.cleanup = cleanup
         self.predicted_complexity_name = None
-        self.predicted_complexity = None
+        self.predicted_complexity_fun = None
         self.predicted_complexity_const = None
+        self.predicted_complexity_certainty = None
 
     def execution_time(self, size):
         # TODO - use a context manager?
@@ -54,7 +56,8 @@ class Benchmark:
     def predict_complexity(self):
         @self.logger.log_fun
         def predict_complexity_():
-            self.predicted_complexity_name, self.predicted_complexity, self.predicted_complexity_const, _ = ComplexMatcher().match(self.measurements)
+            self.predicted_complexity_name, self.predicted_complexity_fun, self.predicted_complexity_const, \
+              self.predicted_complexity_certainty = ComplexMatcher().match(self.measurements)
             return self.predicted_complexity_name
 
         try:
@@ -66,7 +69,7 @@ class Benchmark:
             return None
 
     def time_for_size(self, size, to_log=True):
-        result = self.predicted_complexity(size) * self.predicted_complexity_const
+        result = self.predicted_complexity_fun(size) * self.predicted_complexity_const
         if to_log:
             @self.logger.log_fun
             def time_for_size_(s):
@@ -124,12 +127,25 @@ class ComplexMatcher:
         'n!': lambda n: factorial(n)
     }
 
+    """The result tuple is:
+    (name of the complexity,
+    the actual complexity function object,
+    the constant that the function needs to be multiplied by when calculating performance,
+    variance of the orders of magnitude of (measured_time(n))/(f(n))
+    )"""
+
     def match(self, measurements):
         if len(measurements) < 2:
             raise NotEnoughMeasurePointsException(len(measurements))
-        vars = []
+        variances = []
         for compl in self.complexities:
-            diffs = list(map(lambda m: (log(m[1], 10) - log(self.complexities[compl](m[0]), 10)), measurements))
-            vars.append((compl, self.complexities[compl], 10 ** np.mean(diffs), np.var(diffs)))
-        vars.sort(key=lambda x: x[3])
-        return vars[0]
+            divisions = list(map(lambda m: (log(m[1], 10) - log(self.complexities[compl](m[0]), 10)), measurements))
+            variances.append((compl, 10 ** np.mean(divisions), np.var(divisions)))
+        variances.sort(key=lambda x: x[2])
+
+        best_name = variances[0][0]
+        best_const = variances[0][1]
+        best_variance = variances[0][2]
+        best_fun = self.complexities[best_name]
+        certainty = 1 / (best_variance * sum(list(map(lambda v: 1 / v[2], variances))))
+        return best_name, best_fun, best_const, certainty
