@@ -4,9 +4,9 @@ from timeit import default_timer as timer
 
 import matplotlib.pyplot as plt
 import numpy as np
-
 from benchmark.funlogger import Funlogger
-from benchmark.util import NotEnoughMeasurePointsException, TimeoutException, with_timeout
+
+from util import NotEnoughMeasurePointsException, TimeoutException, with_timeout
 
 
 class Benchmark:
