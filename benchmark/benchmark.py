@@ -1,11 +1,12 @@
-from funlogger import Funlogger
 from math import log, factorial
-from util import NotEnoughMeasurePointsException, TimeoutException, with_timeout
-from timeit import default_timer as timer
 from random import randrange
-from functools import reduce
-import numpy as np
+from timeit import default_timer as timer
+
 import matplotlib.pyplot as plt
+import numpy as np
+
+from benchmark.funlogger import Funlogger
+from benchmark.util import NotEnoughMeasurePointsException, TimeoutException, with_timeout
 
 
 class Benchmark:
@@ -57,7 +58,7 @@ class Benchmark:
         @self.logger.log_fun
         def predict_complexity_():
             self.predicted_complexity_name, self.predicted_complexity_fun, self.predicted_complexity_const, \
-              self.predicted_complexity_certainty = ComplexMatcher().match(self.measurements)
+            self.predicted_complexity_certainty = ComplexMatcher().match(self.measurements)
             return self.predicted_complexity_name
 
         try:
@@ -72,7 +73,7 @@ class Benchmark:
         result = self.predicted_complexity_fun(size) * self.predicted_complexity_const
         if to_log:
             @self.logger.log_fun
-            def time_for_size_(s):
+            def time_for_size_(_):
                 return result
 
             return time_for_size_(size)
@@ -97,7 +98,7 @@ class Benchmark:
         result = bin_search(max_size / 2, max_size)
 
         @self.logger.log_fun
-        def size_for_time_(t):
+        def size_for_time_(_):
             return result
 
         if to_log:
@@ -131,7 +132,7 @@ class ComplexMatcher:
     (name of the complexity,
     the actual complexity function object,
     the constant that the function needs to be multiplied by when calculating performance,
-    variance of the orders of magnitude of (measured_time(n))/(f(n))
+    certainty of measurement between 0 and 1
     )"""
 
     def match(self, measurements):
