@@ -56,15 +56,15 @@ class Benchmark:
                                                                                      "Made only " +
                             str(len(self.measurements)) + " measurements")
 
-    def make_random_measurements(self, count=256, min=1, max=100):
-        sizes = [randrange(min, max) for _ in range(count)]
+    def make_random_measurements(self, count=256, min_s=1, max_s=100):
+        sizes = [randrange(min_s, max_s) for _ in range(count)]
         return self.make_measurements(sizes)
 
     def predict_complexity(self):
         @self.logger.log_fun
         def predict_complexity_(_):
             self.predicted_complexity_name, self.predicted_complexity_fun, self.predicted_complexity_const, \
-            self.predicted_complexity_certainty = ComplexMatcher().match(self.measurements)
+              self.predicted_complexity_certainty = ComplexMatcher().match(self.measurements)
             return self.predicted_complexity_name
 
         try:
@@ -116,16 +116,16 @@ class Benchmark:
         predicted_times = list(map(lambda s: self.time_for_size(s, to_log=False), sizes))
         plt.plot(sizes, times, 'ro', markersize=2)
         plt.plot(sizes, predicted_times, 'b')
-        red_data=patches.Patch(color='red', label='Measured time')
-        blue_data=patches.Patch(color='blue', label='Predicted time')
+        red_data = patches.Patch(color='red', label='Measured time')
+        blue_data = patches.Patch(color='blue', label='Predicted time')
         plt.legend(handles=[red_data, blue_data])
         plt.xlabel('problem size')
         plt.ylabel('time of solution [s]')
-        plt.title('Function: '+self.to_measure.__name__ +
+        plt.title('Function: ' + self.to_measure.__name__ +
                   '\nPredicted complexity: O(' +
                   self.predicted_complexity_name + '), ' +
                   'certainty of prediction: ' +
-                  "{0:.2f}".format(100*self.predicted_complexity_certainty) + '%')
+                  "{0:.2f}".format(100 * self.predicted_complexity_certainty) + '%')
         plt.show()
 
 
@@ -155,9 +155,11 @@ class ComplexMatcher:
         if len(measurements) < 2:
             raise NotEnoughMeasurePointsException(len(measurements))
         variances = []
-        for compl in self.complexities:
-            divisions = list(map(lambda m: (log(m[1], 10) - log(self.complexities[compl](m[0]), 10)), measurements))
-            variances.append((compl, 10 ** np.mean(divisions), np.var(divisions)))
+        for complexity in self.complexities:
+            divisions = list(
+                map(lambda m: (log(m[1], 10) - log(self.complexities[complexity](m[0]), 10)),
+                    measurements))
+            variances.append((complexity, 10 ** np.mean(divisions), np.var(divisions)))
         variances.sort(key=lambda x: x[2])
 
         best_name = variances[0][0]
