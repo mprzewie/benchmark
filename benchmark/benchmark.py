@@ -11,34 +11,26 @@ from benchmark.util import NotEnoughMeasurePointsException, TimeoutException, wi
 
 
 class Benchmark:
-    def __init__(self, initializer, to_measure, cleanup=lambda *args: None, log_name="", measurement_timeout=30):
+    def __init__(self, context_manager, to_measure, log_name="", measurement_timeout=30):
         self.logger = Funlogger(log_name=log_name)
         self.measurement_timeout = measurement_timeout
         self.measurements = []
-        self.initializer = initializer
+        self.context_manager = context_manager
         self.to_measure = to_measure
-        self.cleanup = cleanup
         self.predicted_complexity_name = None
         self.predicted_complexity_fun = None
         self.predicted_complexity_const = None
         self.predicted_complexity_certainty = None
 
     def execution_time(self, size):
-        # wouldn't it make more sense to use a context manager?
-        to_measure_args = self.initializer(size)
-        try:
+        with self.context_manager(size) as to_measure_args:
             start = timer()
             if type(to_measure_args) is list:
                 self.to_measure(to_measure_args)
             else:
                 self.to_measure(*to_measure_args)
             end = timer()
-            return end - start
-        finally:
-            if type(to_measure_args) is list:
-                self.cleanup(to_measure_args)
-            else:
-                self.cleanup(*to_measure_args)
+        return end - start
 
     def make_measurements(self, sizes):
 
