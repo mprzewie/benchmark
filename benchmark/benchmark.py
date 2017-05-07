@@ -7,7 +7,7 @@ import matplotlib.patches as patches
 import numpy as np
 
 from benchmark.funlogger import Funlogger
-from benchmark.util import NotEnoughMeasurePointsException, TimeoutException, with_timeout
+from benchmark.util import NotEnoughMeasurePointsException, TimeoutException, with_timeout, contextify
 
 
 class Benchmark:
@@ -15,7 +15,7 @@ class Benchmark:
         self.logger = Funlogger(log_name=log_name)
         self.measurement_timeout = measurement_timeout
         self.measurements = []
-        self.context_manager = context_manager
+        self.context_manager = contextify(context_manager)
         self.to_measure = to_measure
         self.predicted_complexity_name = None
         self.predicted_complexity_fun = None

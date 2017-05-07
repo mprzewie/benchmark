@@ -1,5 +1,6 @@
-import signal
 import stopit
+
+from contextlib import contextmanager
 
 
 class NotEnoughMeasurePointsException(Exception):
@@ -36,3 +37,23 @@ def with_timeout(timeout):
         return tmp
 
     return timeout_canceller
+
+
+def contextify(suppposed_context_manager):
+    try:
+        __init__ = getattr(suppposed_context_manager,
+                           '__init__')
+        __enter__ = getattr(suppposed_context_manager,
+                            '__enter__')
+        __exit__ = getattr(suppposed_context_manager,
+                           '__exit__')
+        if callable(__init__) and callable(__enter__) and callable(__exit__):
+            return suppposed_context_manager
+        else:
+            raise Exception
+    except Exception:
+        @contextmanager
+        def actual_context_manager(size):
+            yield suppposed_context_manager(size)
+
+        return actual_context_manager
