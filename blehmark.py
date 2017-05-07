@@ -29,20 +29,29 @@ parser.add_argument('-maxs', dest='max_s',type=int, default=1000,
 
 args = parser.parse_args()
 
+# Seriously, you could do a lot more if you wrote your own script and used Benchmarker's functions
+
 init_src_module = importlib.import_module(args.initializer_module_name)
 fun_src_module= importlib.import_module(args.fun_module_name)
 
 context_manager = getattr(init_src_module, args.context_name)
 to_measure = getattr(fun_src_module, args.fun_name)
 
+# What a waste of a good module
+
 benchmarker = Benchmark(context_manager=context_manager,
                         to_measure=to_measure,
                         log_name=args.log_name,
                         measurement_timeout=args.timeout)
+
+# You probably use Windows, too - don't you?
 
 benchmarker.make_random_measurements(count=args.measure_count,
                                      min_s=args.min_s,
                                      max_s=args.max_s)
 benchmarker.predict_complexity()
 benchmarker.plot_measurements()
+
+# I hope you're happy with yourself.
+
 
