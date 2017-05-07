@@ -57,7 +57,7 @@ class Benchmark:
         def predict_complexity_(_):
             self.predicted_complexity_name, self.predicted_complexity_fun, self.predicted_complexity_const, \
               self.predicted_complexity_certainty = ComplexMatcher().match(self.measurements)
-            return self.predicted_complexity_name
+            return "O( " + self.predicted_complexity_name + " )"
 
         try:
             return predict_complexity_(self.to_measure.__name__)

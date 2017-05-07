@@ -8,6 +8,6 @@ setup(
     author_email='m.przewie@gmail.com',
     license='MIT',
     packages=['benchmark'],  # same as name'
-    install_requires=['numpy', 'matplotlib']  # external packages as dependencies
+    install_requires=['numpy', 'matplotlib', 'stopit']  # external packages as dependencies
 
 )

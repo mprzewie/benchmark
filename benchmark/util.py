@@ -1,4 +1,5 @@
 import signal
+import stopit
 
 
 class NotEnoughMeasurePointsException(Exception):
@@ -14,20 +15,23 @@ class TimeoutException(Exception):
 
 
 def with_timeout(timeout):
-    def handler(signum, frame):
-        raise TimeoutException(timeout)
-
     def timeout_canceller(f):
         def tmp(*args):
-            signal.signal(signal.SIGALRM, handler)
-            signal.alarm(timeout)
-            try:
+            with stopit.ThreadingTimeout(timeout) as ctx_mgr:
+                assert ctx_mgr.state == ctx_mgr.EXECUTING
+
                 if type(args) is list:
-                    return f(args)
+                    result = f(args)
                 else:
-                    return f(*args)
-            finally:
-                signal.alarm(0)
+                    result = f(*args)
+
+            if ctx_mgr.state in (ctx_mgr.EXECUTING,
+                                 ctx_mgr.TIMED_OUT,
+                                 ctx_mgr.INTERRUPTED,
+                                 ctx_mgr.CANCELED):
+                raise TimeoutException(timeout)
+            else:
+                return result
 
         return tmp
 
