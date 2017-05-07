@@ -11,7 +11,7 @@ from benchmark.util import NotEnoughMeasurePointsException, TimeoutException, wi
 
 
 class Benchmark:
-    def __init__(self, context_manager, to_measure, log_name="", measurement_timeout=30):
+    def __init__(self, context_manager, to_measure, log_name=None, measurement_timeout=30):
         self.logger = Funlogger(log_name=log_name)
         self.measurement_timeout = measurement_timeout
         self.measurements = []
