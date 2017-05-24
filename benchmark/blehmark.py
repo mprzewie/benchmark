@@ -24,7 +24,7 @@ parser.add_argument('-c', dest='measure_count', type=int, default=256,
                     help="Count of measurements to be made")
 parser.add_argument('-mins', dest='min_s', type=int, default=1,
                     help="Minimal size of the problem to be measured")
-parser.add_argument('-maxs', dest='max_s',type=int, default=1000,
+parser.add_argument('-maxs', dest='max_s', type=int, default=1000,
                     help="Maximal size of the problem to be measured")
 
 args = parser.parse_args()
@@ -32,7 +32,7 @@ args = parser.parse_args()
 # Seriously, you could do a lot more if you wrote your own script and used Benchmarker's functions
 
 init_src_module = importlib.import_module(args.initializer_module_name)
-fun_src_module= importlib.import_module(args.fun_module_name)
+fun_src_module = importlib.import_module(args.fun_module_name)
 
 context_manager = getattr(init_src_module, args.context_name)
 to_measure = getattr(fun_src_module, args.fun_name)
@@ -53,5 +53,3 @@ benchmarker.predict_complexity()
 benchmarker.plot_measurements()
 
 # I hope you're happy with yourself.
-
-
