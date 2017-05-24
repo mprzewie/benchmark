@@ -10,7 +10,7 @@ setup(
     packages=['benchmark'],  # same as name'
     install_requires=['numpy', 'matplotlib', 'stopit'],  # external packages as dependencies
     entry_points={
-        'console_scripts': ['benchmark = benchmark.blehmark:blehmark']
+        'console_scripts': ['blehmark = benchmark.blehmark:main']
     }
 
 )
